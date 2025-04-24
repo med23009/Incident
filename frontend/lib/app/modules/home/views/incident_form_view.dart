@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class IncidentFormView extends StatefulWidget {
   final Map<String, dynamic>? incident;
@@ -17,8 +18,7 @@ class _IncidentFormViewState extends State<IncidentFormView> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController titleController;
   late TextEditingController descriptionController;
-  late TextEditingController locationController;
-  String status = 'Nouveau';
+  String _location = 'Sélectionner un emplacement';
   List<File> _imageFiles = [];
   String? _audioPath;
   FlutterSoundPlayer? _player;
@@ -27,25 +27,32 @@ class _IncidentFormViewState extends State<IncidentFormView> {
   bool _isRecording = false;
   Duration? _audioDuration;
   Duration? _audioPosition;
+  bool _isRecorderInitialized = false;
 
   @override
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.incident?['title'] ?? '');
     descriptionController = TextEditingController(text: widget.incident?['description'] ?? '');
-    locationController = TextEditingController(text: widget.incident?['location'] ?? '');
-    status = widget.incident?['status'] ?? 'Nouveau';
+    _location = widget.incident?['location'] ?? 'Sélectionner un emplacement';
     _initRecorder();
     _player = FlutterSoundPlayer();
     _imageFiles = [];
+    if (widget.incident?['image_files'] != null) {
+      _imageFiles = List<File>.from(widget.incident!['image_files']);
+    }
+    if (widget.incident?['audio_file'] != null) {
+      _audioPath = widget.incident!['audio_file'];
+    }
   }
 
   @override
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
-    locationController.dispose();
-    _recorder.closeRecorder();
+    if (_isRecorderInitialized) {
+      _recorder.closeRecorder();
+    }
     _player?.closePlayer();
     super.dispose();
   }
@@ -84,7 +91,12 @@ class _IncidentFormViewState extends State<IncidentFormView> {
   }
 
   Future<void> _initRecorder() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      return;
+    }
     await _recorder.openRecorder();
+    _isRecorderInitialized = true;
   }
 
   Future<void> _pickImages() async {
@@ -103,10 +115,17 @@ class _IncidentFormViewState extends State<IncidentFormView> {
   }
 
   Future<void> _startOrStopRecording() async {
+    if (!_isRecorderInitialized) {
+      await _initRecorder();
+    }
+    
     if (!_isRecording) {
-      final status = await Permission.microphone.request();
-      if (!status.isGranted) return;
-      final tempPath = '/tmp/incident_${DateTime.now().millisecondsSinceEpoch}.aac';
+      if (!_isRecorderInitialized) return;
+      
+      // Créer un chemin de fichier temporaire approprié
+      final dir = await getTemporaryDirectory();
+      final tempPath = '${dir.path}/incident_${DateTime.now().millisecondsSinceEpoch}.aac';
+      
       await _recorder.startRecorder(toFile: tempPath);
       setState(() {
         _isRecording = true;
@@ -126,11 +145,26 @@ class _IncidentFormViewState extends State<IncidentFormView> {
     });
   }
 
+  void _selectLocation() {
+    // Cette fonction sera implémentée pour sélectionner un emplacement
+    // Pour l'instant, nous simulons une sélection
+    setState(() {
+      _location = 'Emplacement sélectionné'; // Ceci serait normalement défini par une carte ou une liste
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.incident == null ? 'Nouvel incident' : 'Modifier incident'),
-      content: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.incident == null ? 'Nouvel incident' : 'Modifier incident'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -150,21 +184,14 @@ class _IncidentFormViewState extends State<IncidentFormView> {
                 validator: (v) => v == null || v.isEmpty ? 'Description requise' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: locationController,
-                decoration: const InputDecoration(labelText: 'Localisation'),
-                validator: (v) => v == null || v.isEmpty ? 'Localisation requise' : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: status,
-                decoration: const InputDecoration(labelText: 'Statut'),
-                items: const [
-                  DropdownMenuItem(value: 'Nouveau', child: Text('Nouveau')),
-                  DropdownMenuItem(value: 'En cours', child: Text('En cours')),
-                  DropdownMenuItem(value: 'Résolu', child: Text('Résolu')),
-                ],
-                onChanged: (v) => setState(() => status = v ?? 'Nouveau'),
+              ElevatedButton.icon(
+                onPressed: _selectLocation,
+                icon: const Icon(Icons.location_on),
+                label: Text(_location),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  alignment: Alignment.centerLeft,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -247,28 +274,27 @@ class _IncidentFormViewState extends State<IncidentFormView> {
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               widget.onSave({
                 'title': titleController.text.trim(),
                 'description': descriptionController.text.trim(),
-                'location': locationController.text.trim(),
-                'status': status,
+                'location': _location,
                 'image_files': _imageFiles,
                 'audio_file': _audioPath,
               });
               Navigator.of(context).pop();
             }
           },
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 50),
+          ),
           child: const Text('Enregistrer'),
         ),
-      ],
+      ),
     );
   }
 }

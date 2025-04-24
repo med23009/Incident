@@ -124,19 +124,21 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _openIncidentForm({Map<String, dynamic>? incident, int? index}) {
-    showDialog(
-      context: context,
-      builder: (context) => IncidentFormView(
-        incident: incident,
-        onSave: (data) async {
-          if (incident == null) {
-            // Création
-            await incidentController.createIncident(data);
-          } else {
-            // Modification
-            await incidentController.updateIncident(index!, data);
-          }
-        },
+    // Utiliser Navigator.push pour ouvrir le formulaire comme une page séparée
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncidentFormView(
+          incident: incident,
+          onSave: (data) async {
+            if (incident == null) {
+              // Création
+              await incidentController.createIncident(data);
+            } else {
+              // Modification
+              await incidentController.updateIncident(index!, data);
+            }
+          },
+        ),
       ),
     );
   }

@@ -41,29 +41,55 @@ class IncidentController extends GetxController {
       var uri = Uri.parse('http://192.168.188.205:8000/api/incidents/');
       var request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $token';
-      request.fields['title'] = data['title'] ?? '';
+      
+      // Conversion du titre en type d'incident (utiliser 'other' par défaut)
+      request.fields['type'] = 'other';
+      
+      // Description de l'incident
       request.fields['description'] = data['description'] ?? '';
-      request.fields['location'] = data['location'] ?? '';
-      request.fields['status'] = data['status'] ?? '';
+      
+      // Extraction des coordonnées de localisation
+      // Si la localisation est une chaîne, utiliser des coordonnées par défaut
+      // Dans une implémentation réelle, ces valeurs seraient extraites d'un service de géolocalisation
+      double latitude = 0.0;
+      double longitude = 0.0;
+      
+      if (data['latitude'] != null && data['longitude'] != null) {
+        latitude = data['latitude'];
+        longitude = data['longitude'];
+      }
+      
+      request.fields['latitude'] = latitude.toString();
+      request.fields['longitude'] = longitude.toString();
+      
+      // Gestion des fichiers image
       if (data['image_files'] != null && data['image_files'] is List) {
         for (var file in data['image_files']) {
           request.files.add(await http.MultipartFile.fromPath('images', file.path));
         }
       }
+      
+      // Gestion du fichier audio
       if (data['audio_file'] != null) {
-        request.files.add(await http.MultipartFile.fromPath('audio', data['audio_file']));
+        request.files.add(await http.MultipartFile.fromPath('audio_description', data['audio_file']));
       }
+      
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+      
       if (response.statusCode == 201) {
-        fetchIncidents();
+        await fetchIncidents();
+        errorMessage.value = '';
       } else {
-        errorMessage.value = 'Erreur lors de la création de l\'incident';
+        print('Erreur API: ${response.statusCode} - ${response.body}');
+        errorMessage.value = 'Erreur lors de la création de l\'incident: ${response.statusCode}';
       }
     } catch (e) {
-      errorMessage.value = 'Erreur réseau ou serveur';
+      print('Exception: $e');
+      errorMessage.value = 'Erreur réseau ou serveur: $e';
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   Future<void> updateIncident(int index, Map<String, dynamic> data) async {
