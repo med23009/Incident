@@ -4,9 +4,10 @@ import '../controllers/auth_controller.dart';
 
 class RegisterView extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+
+  RegisterView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +29,6 @@ class RegisterView extends StatelessWidget {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom d\'utilisateur',
-                  border: OutlineInputBorder(),
-                ),
               ),
               const SizedBox(height: 16),
               Obx(() => TextField(
@@ -72,15 +65,14 @@ class RegisterView extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (passwordController.text.trim() != confirmPasswordController.text.trim()) {
-                      controller.errorMessage.value = 'Les mots de passe ne correspondent pas';
+                  onPressed: () async {
+                    if (passwordController.text != confirmPasswordController.text) {
+                      Get.snackbar('Erreur', 'Les mots de passe ne correspondent pas', snackPosition: SnackPosition.BOTTOM);
                       return;
                     }
-                    controller.register(
+                    await controller.register(
                       emailController.text.trim(),
-                      usernameController.text.trim(),
-                      passwordController.text.trim(),
+                      passwordController.text
                     );
                   },
                   child: Obx(() => controller.isLoading.value

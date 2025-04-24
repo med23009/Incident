@@ -175,7 +175,7 @@ class _HomeViewState extends State<HomeView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(userController.userName.value.isNotEmpty ? userController.userName.value : 'Utilisateur',
+                      Text(userController.userEmail.value.isNotEmpty ? userController.userEmail.value : 'Utilisateur',
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       Text(userController.userEmail.value.isNotEmpty ? userController.userEmail.value : 'utilisateur@example.com',
                           style: const TextStyle(fontSize: 14, color: Colors.grey)),

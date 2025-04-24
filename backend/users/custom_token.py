@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import permissions
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = "email"
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -13,17 +14,23 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # Remplacer username par email
-        email = attrs.get("email")
+        print('DEBUG attrs reçus:', attrs)
+        email = attrs.get("email") or attrs.get("username")
         password = attrs.get("password")
+        if not email or not password:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'detail': 'Email et mot de passe requis.'})
         User = get_user_model()
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise self.error_messages["no_active_account"]
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'detail': 'Identifiants invalides.'})
         if not user.check_password(password):
-            raise self.error_messages["no_active_account"]
-        data = super().validate({"username": user.username, "password": password})
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'detail': 'Identifiants invalides.'})
+        # Authentification strictement par email
+        data = super().validate({"email": user.email, "password": password})
         return data
 
 from rest_framework_simplejwt.views import TokenObtainPairView

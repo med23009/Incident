@@ -4,8 +4,10 @@ import '../controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 
 class LoginView extends StatelessWidget {
-  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  LoginView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +23,9 @@ class LoginView extends StatelessWidget {
               Text('Bienvenue', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 32),
               TextField(
-                controller: usernameController,
+                controller: emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Nom d\'utilisateur ou Email',
+                  labelText: 'Email',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -55,7 +57,7 @@ class LoginView extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     controller.login(
-                      usernameController.text.trim(),
+                      emailController.text.trim(),
                       passwordController.text.trim(),
                     );
                   },

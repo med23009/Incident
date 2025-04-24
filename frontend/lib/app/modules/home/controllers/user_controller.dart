@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class UserController extends GetxController {
-  final userName = ''.obs;
   final userEmail = ''.obs;
 
   Future<void> fetchUserInfo() async {
@@ -17,7 +16,6 @@ class UserController extends GetxController {
       final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
       final payloadMap = json.decode(payload);
       userEmail.value = payloadMap['email'] ?? '';
-      userName.value = payloadMap['username'] ?? '';
     } catch (_) {
       // fallback possible : requête API user profile
     }
