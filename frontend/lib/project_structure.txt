@@ -1,0 +1,36 @@
+// Structure Clean GetX pour Urban Incident Reporter
+
+// lib/
+//   main.dart
+//   app/
+//     routes/
+//       app_pages.dart
+//       app_routes.dart
+//     modules/
+//       auth/
+//         bindings/auth_binding.dart
+//         controllers/auth_controller.dart
+//         views/login_view.dart
+//         views/register_view.dart
+//       home/
+//         bindings/home_binding.dart
+//         controllers/home_controller.dart
+//         views/home_view.dart
+//       incident/
+//         bindings/incident_binding.dart
+//         controllers/incident_controller.dart
+//         views/incident_report_view.dart
+//         views/incident_history_view.dart
+//         views/incident_map_view.dart
+//     data/
+//       models/
+//         user_model.dart
+//         incident_model.dart
+//       providers/
+//         api_provider.dart
+//         local_provider.dart
+//   utils/
+//     constants.dart
+//     helpers.dart
+
+// Fichiers README pour chaque dossier si besoin
