@@ -10,7 +10,7 @@ class Incident(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='incidents')
     type = models.CharField(max_length=20, choices=INCIDENT_TYPE_CHOICES)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     audio_description = models.FileField(upload_to='incidents/audio/', null=True, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)

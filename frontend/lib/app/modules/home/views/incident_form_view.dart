@@ -16,9 +16,11 @@ class IncidentFormView extends StatefulWidget {
 
 class _IncidentFormViewState extends State<IncidentFormView> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController titleController;
   late TextEditingController descriptionController;
+  String? _selectedType;
   String _location = 'Sélectionner un emplacement';
+  double? _latitude;
+  double? _longitude;
   List<File> _imageFiles = [];
   String? _audioPath;
   FlutterSoundPlayer? _player;
@@ -32,9 +34,11 @@ class _IncidentFormViewState extends State<IncidentFormView> {
   @override
   void initState() {
     super.initState();
-    titleController = TextEditingController(text: widget.incident?['title'] ?? '');
     descriptionController = TextEditingController(text: widget.incident?['description'] ?? '');
+    _selectedType = widget.incident?['type'];
     _location = widget.incident?['location'] ?? 'Sélectionner un emplacement';
+    _latitude = widget.incident?['latitude'];
+    _longitude = widget.incident?['longitude'];
     _initRecorder();
     _player = FlutterSoundPlayer();
     _imageFiles = [];
@@ -48,7 +52,6 @@ class _IncidentFormViewState extends State<IncidentFormView> {
 
   @override
   void dispose() {
-    titleController.dispose();
     descriptionController.dispose();
     if (_isRecorderInitialized) {
       _recorder.closeRecorder();
@@ -149,7 +152,9 @@ class _IncidentFormViewState extends State<IncidentFormView> {
     // Cette fonction sera implémentée pour sélectionner un emplacement
     // Pour l'instant, nous simulons une sélection
     setState(() {
-      _location = 'Emplacement sélectionné'; // Ceci serait normalement défini par une carte ou une liste
+      _location = 'Emplacement simulé';
+      _latitude = 36.752887; // Exemple : Alger
+      _longitude = 3.042048;
     });
   }
 
@@ -170,18 +175,34 @@ class _IncidentFormViewState extends State<IncidentFormView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Titre'),
-                validator: (v) => v == null || v.isEmpty ? 'Titre requis' : null,
+              DropdownButtonFormField<String>(
+                value: _selectedType,
+                decoration: const InputDecoration(
+                  labelText: 'Type d\'incident',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'fire', child: Text('Incendie')),
+                  DropdownMenuItem(value: 'accident', child: Text('Accident')),
+                  DropdownMenuItem(value: 'other', child: Text('Autre')),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _selectedType = val;
+                  });
+                },
+                validator: (val) => val == null || val.isEmpty ? 'Champ obligatoire' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                minLines: 2,
-                maxLines: 4,
-                validator: (v) => v == null || v.isEmpty ? 'Description requise' : null,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optionnelle)',
+                  border: OutlineInputBorder(),
+                ),
+                // Pas de validation obligatoire pour la description
+                validator: (val) => null,
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
@@ -189,17 +210,28 @@ class _IncidentFormViewState extends State<IncidentFormView> {
                 icon: const Icon(Icons.location_on),
                 label: Text(_location),
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
                   alignment: Alignment.centerLeft,
                 ),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImages,
-                    icon: const Icon(Icons.collections),
-                    label: const Text('Ajouter des images'),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _pickImages,
+                      icon: const Icon(Icons.collections),
+                      label: const Text('Ajouter des images'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   if (_imageFiles.isNotEmpty)
@@ -238,10 +270,18 @@ class _IncidentFormViewState extends State<IncidentFormView> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _startOrStopRecording,
-                    icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                    label: Text(_isRecording ? 'Arrêter' : 'Ajouter un vocal'),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _startOrStopRecording,
+                      icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                      label: Text(_isRecording ? 'Arrêter' : 'Ajouter un vocal'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
                   ),
                   if (_audioPath != null && !_isRecording)
                     Row(
@@ -278,21 +318,37 @@ class _IncidentFormViewState extends State<IncidentFormView> {
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
           onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              widget.onSave({
-                'title': titleController.text.trim(),
-                'description': descriptionController.text.trim(),
-                'location': _location,
-                'image_files': _imageFiles,
-                'audio_file': _audioPath,
-              });
-              Navigator.of(context).pop();
+            // Validation stricte du type et de la localisation uniquement
+            if (_selectedType == null || _selectedType!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner le type d\'incident.')),
+              );
+              return;
             }
+            if (_latitude == null || _longitude == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner un emplacement.')),
+              );
+              return;
+            }
+            widget.onSave({
+              'type': _selectedType,
+              'description': descriptionController.text.trim(),
+              'location': _location,
+              'latitude': _latitude,
+              'longitude': _longitude,
+              'image_files': _imageFiles,
+              'audio_file': _audioPath,
+            });
+            Navigator.of(context).pop();
           },
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 50),
+            minimumSize: const Size(double.infinity, 52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
           ),
-          child: const Text('Enregistrer'),
+          child: const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ),
     );

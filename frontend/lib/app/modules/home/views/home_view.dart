@@ -170,7 +170,7 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 const CircleAvatar(
                   radius: 32,
-                  backgroundImage: AssetImage('assets/avatar.png'),
+                  //backgroundImage: AssetImage('assets/avatar.png'),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

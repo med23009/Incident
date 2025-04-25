@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' as dio;
 import 'dart:convert';
 
 class IncidentController extends GetxController {
@@ -38,51 +39,62 @@ class IncidentController extends GetxController {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      var uri = Uri.parse('http://192.168.188.205:8000/api/incidents/');
-      var request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
-      
-      // Conversion du titre en type d'incident (utiliser 'other' par défaut)
-      request.fields['type'] = 'other';
-      
-      // Description de l'incident
-      request.fields['description'] = data['description'] ?? '';
-      
-      // Extraction des coordonnées de localisation
-      // Si la localisation est une chaîne, utiliser des coordonnées par défaut
-      // Dans une implémentation réelle, ces valeurs seraient extraites d'un service de géolocalisation
-      double latitude = 0.0;
-      double longitude = 0.0;
-      
-      if (data['latitude'] != null && data['longitude'] != null) {
-        latitude = data['latitude'];
-        longitude = data['longitude'];
-      }
-      
-      request.fields['latitude'] = latitude.toString();
-      request.fields['longitude'] = longitude.toString();
-      
-      // Gestion des fichiers image
+      print('Token utilisé pour POST incident: $token');
+
+      final dioClient = dio.Dio();
+      final String url = 'http://192.168.188.205:8000/api/incidents/';
+
+      // Prépare le FormData
+      dio.FormData formData = dio.FormData.fromMap({
+        'type': data['type'] ?? 'other',
+        'description': data['description'] ?? '',
+        'latitude': data['latitude']?.toString() ?? '0.0',
+        'longitude': data['longitude']?.toString() ?? '0.0',
+      });
+
+      // Ajout des images
       if (data['image_files'] != null && data['image_files'] is List) {
         for (var file in data['image_files']) {
-          request.files.add(await http.MultipartFile.fromPath('images', file.path));
+          formData.files.add(MapEntry(
+            'images',
+            await dio.MultipartFile.fromFile(file.path, filename: file.path.split('/').last),
+          ));
         }
       }
-      
-      // Gestion du fichier audio
+      // Ajout de l'audio
       if (data['audio_file'] != null) {
-        request.files.add(await http.MultipartFile.fromPath('audio_description', data['audio_file']));
+        formData.files.add(MapEntry(
+          'audio_description',
+          await dio.MultipartFile.fromFile(data['audio_file'], filename: data['audio_file'].split('/').last),
+        ));
       }
-      
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
+
+      final response = await dioClient.post(
+        url,
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+          contentType: 'multipart/form-data',
+        ),
+      );
+
       if (response.statusCode == 201) {
         await fetchIncidents();
         errorMessage.value = '';
       } else {
-        print('Erreur API: ${response.statusCode} - ${response.body}');
-        errorMessage.value = 'Erreur lors de la création de l\'incident: ${response.statusCode}';
+        print('Erreur API: ${response.statusCode} - ${response.data}');
+        String backendError = '';
+        try {
+          if (response.data is Map && response.data.isNotEmpty) {
+            backendError = response.data.values.first.toString();
+          }
+        } catch (_) {}
+        errorMessage.value = backendError.isNotEmpty
+            ? 'Erreur lors de la création de l\'incident : $backendError'
+            : 'Erreur lors de la création de l\'incident: ${response.statusCode}';
       }
     } catch (e) {
       print('Exception: $e');
@@ -91,6 +103,7 @@ class IncidentController extends GetxController {
       isLoading.value = false;
     }
   }
+
 
   Future<void> updateIncident(int index, Map<String, dynamic> data) async {
     isLoading.value = true;

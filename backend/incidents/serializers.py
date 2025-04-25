@@ -7,6 +7,7 @@ class IncidentImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image']
 
 class IncidentSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     images = IncidentImageSerializer(many=True, read_only=True)
 
     class Meta:
