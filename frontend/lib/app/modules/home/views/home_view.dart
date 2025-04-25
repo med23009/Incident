@@ -173,17 +173,6 @@ class _HomeViewState extends State<HomeView> {
                   //backgroundImage: AssetImage('assets/avatar.png'),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(userController.userEmail.value.isNotEmpty ? userController.userEmail.value : 'Utilisateur',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text(userController.userEmail.value.isNotEmpty ? userController.userEmail.value : 'utilisateur@example.com',
-                          style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                    ],
-                  ),
-                ),
               ],
             )),
             const SizedBox(height: 24),
@@ -207,13 +196,8 @@ class _HomeViewState extends State<HomeView> {
                   itemBuilder: (context, index) {
                     final incident = incidents[index];
                     return ListTile(
-                      leading: incident['image_url'] != null && incident['image_url'].toString().isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(incident['image_url'], width: 48, height: 48, fit: BoxFit.cover),
-                            )
-                          : const Icon(Icons.report, color: Colors.orange, size: 40),
-                      title: Text(incident['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      leading: const Icon(Icons.report, color: Colors.orange, size: 40),
+                      title: Text(incident['type'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -221,38 +205,9 @@ class _HomeViewState extends State<HomeView> {
                             Text(incident['description'], maxLines: 2, overflow: TextOverflow.ellipsis),
                           if (incident['location'] != null && incident['location'].toString().isNotEmpty)
                             Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.blueGrey), SizedBox(width: 2), Text(incident['location'], style: const TextStyle(fontSize: 12))]),
-                          Row(
-                            children: [
-                              Chip(
-                                label: Text(incident['status'] ?? 'N/A', style: const TextStyle(fontSize: 12)),
-                                backgroundColor: incident['status'] == 'Résolu'
-                                    ? Colors.green[200]
-                                    : (incident['status'] == 'En cours' ? Colors.orange[200] : Colors.grey[200]),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(incident['date'] ?? '', style: const TextStyle(fontSize: 12)),
-                            ],
-                          ),
                         ],
                       ),
                       isThreeLine: true,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (incident['audio_url'] != null && incident['audio_url'].toString().isNotEmpty)
-                            SizedBox(width: 180, child: AudioPlayerWidget(audioUrl: incident['audio_url'])),
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            tooltip: 'Modifier',
-                            onPressed: () => _openIncidentForm(incident: incident, index: index),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            tooltip: 'Supprimer',
-                            onPressed: () => incidentController.deleteIncident(index),
-                          ),
-                        ],
-                      ),
                     );
                   },
                 );
